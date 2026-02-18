@@ -5,15 +5,14 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import IsolationForest
 
-# ------------------ Page Setup ------------------
+# Page setup
 st.set_page_config(page_title="AI Decision Dashboard", layout="wide")
 st.title("AI-Powered Business Decision Support System")
 st.markdown("### Enter monthly sales to see predictions, anomalies, and recommendations.")
 
-# ------------------ Manual Sales Entry ------------------
+# Manual sales entry
 st.markdown("### Enter Monthly Sales (6 months)")
 col1, col2, col3 = st.columns(3)
-
 with col1:
     m1 = st.number_input("Month 1", value=100)
     m2 = st.number_input("Month 2", value=130)
@@ -27,17 +26,17 @@ with col3:
 sales = [m1, m2, m3, m4, m5, m6]
 months = list(range(1, len(sales)+1))
 
-# ------------------ Data Overview ------------------
+# Data overview
 df = pd.DataFrame({"Month": months, "Sales": sales})
 st.markdown("### Sales Overview")
 st.dataframe(df, use_container_width=True)
 
-# ------------------ Anomaly Detection ------------------
+# Anomaly detection
 iso = IsolationForest(contamination=0.1, random_state=42)
 df['Anomaly'] = iso.fit_predict(df[['Sales']])
 anomalies = df[df['Anomaly'] == -1]
 
-# ------------------ AI Prediction ------------------
+# AI Prediction
 X = np.array(months).reshape(-1, 1)
 y = np.array(sales)
 model = LinearRegression()
@@ -45,16 +44,18 @@ model.fit(X, y)
 next_month = np.array([[len(sales) + 1]])
 next_prediction = int(model.predict(next_month)[0])
 
-# ------------------ Trend Detection ------------------
-# Short-term trend based on last 2 months
-if sales[-1] > sales[-2]:
+# Smarter Trend Detection
+pct_change = (sales[-1] - sales[-2]) / sales[-2] * 100
+threshold = 5  # percent change to count as meaningful
+
+if pct_change > threshold:
     trend = "Positive"
-elif sales[-1] < sales[-2]:
+elif pct_change < -threshold:
     trend = "Negative"
 else:
     trend = "Stable"
 
-# ------------------ KPIs ------------------
+# KPIs
 col1, col2, col3 = st.columns(3)
 with col1:
     st.metric("Predicted Next Month Sales", next_prediction)
@@ -65,7 +66,7 @@ with col2:
 with col3:
     st.metric("Trend Direction", trend)
 
-# ------------------ AI Recommendation ------------------
+# Recommendation
 st.markdown("### AI Recommendation")
 if trend == "Positive":
     st.success("Sales trend is increasing. Expand inventory and marketing.")
@@ -74,14 +75,14 @@ elif trend == "Negative":
 else:
     st.info("Sales trend is stable. Maintain current strategy.")
 
-# ------------------ Profit Simulation ------------------
+# Profit Simulation
 st.markdown("### Profit Simulation")
 price = st.number_input("Selling Price per Unit", value=50)
 cost = st.number_input("Cost per Unit", value=30)
 profit = (price - cost) * next_prediction
 st.metric("Projected Profit (Next Month)", f"${profit}")
 
-# ------------------ Sales Trend Graph ------------------
+# Sales Trend Graph
 st.markdown("### Sales Trend with Anomalies")
 plt.figure(figsize=(8,4))
 plt.plot(months, sales, marker='o', label="Sales", linewidth=2)
@@ -94,7 +95,7 @@ plt.legend()
 plt.grid(True)
 st.pyplot(plt)
 
-# ------------------ Show Anomalies Table ------------------
+# Show anomalies table
 if not anomalies.empty:
     st.markdown("### Detected Anomalies")
     st.table(anomalies[["Month", "Sales"]])
