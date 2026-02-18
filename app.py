@@ -9,6 +9,7 @@ st.title("Smart Business Decision Support System")
 
 st.markdown("Enter your monthly sales data below.")
 
+# User input
 sales_data = st.text_area("Enter 6 months sales (comma separated)", "100,120,130,150,170,200")
 
 if sales_data:
@@ -23,6 +24,7 @@ if sales_data:
     st.subheader("Sales Overview")
     st.dataframe(df)
 
+    # Simple Prediction Logic (Average Growth)
     growth_rates = []
     for i in range(1, len(sales)):
         growth = (sales[i] - sales[i-1]) / sales[i-1]
@@ -34,6 +36,7 @@ if sales_data:
     st.subheader("Next Month Prediction")
     st.metric("Predicted Sales", next_prediction)
 
+    # Risk Level
     volatility = np.std(sales)
     risk_score = int((volatility / np.mean(sales)) * 100)
 
@@ -41,12 +44,14 @@ if sales_data:
     st.progress(min(risk_score, 100))
     st.write(f"Risk Score: {risk_score}%")
 
+    # Recommendation
     st.subheader("Recommendation")
     if avg_growth > 0:
         st.success("Sales trend is positive. Increase production and marketing.")
     else:
         st.warning("Sales trend is declining. Optimize costs and consider discounts.")
 
+    # Profit Simulation
     st.subheader("Profit Simulation")
     price = st.number_input("Selling Price per Unit", value=50)
     cost = st.number_input("Cost per Unit", value=30)
@@ -55,6 +60,7 @@ if sales_data:
 
     st.metric("Projected Profit Next Month", f"${profit}")
 
+    # Graph
     st.subheader("Sales Trend Graph")
     plt.plot(months, sales)
     plt.xlabel("Month")
