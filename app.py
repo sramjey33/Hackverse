@@ -7,65 +7,103 @@ st.set_page_config(page_title="Smart Decision Dashboard", layout="wide")
 
 st.title("Smart Business Decision Support System")
 
-st.markdown("Enter your monthly sales data below.")
+st.markdown("### Choose how you want to provide sales data")
 
-# User input
-sales_data = st.text_area("Enter 6 months sales (comma separated)", "100,120,130,150,170,200")
+option = st.radio("Select Input Method:", ["Manual Entry", "Upload CSV"])
 
-if sales_data:
-    sales = list(map(int, sales_data.split(",")))
-    months = list(range(1, len(sales)+1))
+# ------------------ MANUAL ENTRY ------------------
 
-    df = pd.DataFrame({
-        "Month": months,
-        "Sales": sales
-    })
+if option == "Manual Entry":
 
-    st.subheader("Sales Overview")
-    st.dataframe(df)
+    st.markdown("### Enter Monthly Sales")
 
-    # Simple Prediction Logic (Average Growth)
-    growth_rates = []
-    for i in range(1, len(sales)):
-        growth = (sales[i] - sales[i-1]) / sales[i-1]
-        growth_rates.append(growth)
+    col1, col2, col3 = st.columns(3)
 
-    avg_growth = np.mean(growth_rates)
-    next_prediction = int(sales[-1] * (1 + avg_growth))
+    with col1:
+        m1 = st.number_input("Month 1", value=100)
+        m2 = st.number_input("Month 2", value=120)
 
-    st.subheader("Next Month Prediction")
-    st.metric("Predicted Sales", next_prediction)
+    with col2:
+        m3 = st.number_input("Month 3", value=130)
+        m4 = st.number_input("Month 4", value=150)
 
-    # Risk Level
-    volatility = np.std(sales)
-    risk_score = int((volatility / np.mean(sales)) * 100)
+    with col3:
+        m5 = st.number_input("Month 5", value=170)
+        m6 = st.number_input("Month 6", value=200)
 
-    st.subheader("Business Risk Level")
-    st.progress(min(risk_score, 100))
-    st.write(f"Risk Score: {risk_score}%")
+    sales = [m1, m2, m3, m4, m5, m6]
 
-    # Recommendation
-    st.subheader("Recommendation")
-    if avg_growth > 0:
-        st.success("Sales trend is positive. Increase production and marketing.")
-    else:
-        st.warning("Sales trend is declining. Optimize costs and consider discounts.")
-
-    # Profit Simulation
-    st.subheader("Profit Simulation")
-    price = st.number_input("Selling Price per Unit", value=50)
-    cost = st.number_input("Cost per Unit", value=30)
-
-    profit = (price - cost) * next_prediction
-
-    st.metric("Projected Profit Next Month", f"${profit}")
-
-    # Graph
-    st.subheader("Sales Trend Graph")
-    plt.plot(months, sales)
-    plt.xlabel("Month")
-    plt.ylabel("Sales")
-    st.pyplot(plt)
+# ------------------ CSV UPLOAD ------------------
 
 else:
-    st.info("Please enter sales data.")
+
+    uploaded_file = st.file_uploader("Upload CSV (Columns: Month, Sales)", type=["csv"])
+
+    if uploaded_file is not None:
+        df = pd.read_csv(uploaded_file)
+        sales = list(df["Sales"])
+    else:
+        st.stop()
+
+# ------------------ ANALYSIS ------------------
+
+months = list(range(1, len(sales)+1))
+
+df = pd.DataFrame({
+    "Month": months,
+    "Sales": sales
+})
+
+st.markdown("### Sales Overview")
+st.dataframe(df, use_container_width=True)
+
+# Growth Calculation
+growth_rates = []
+for i in range(1, len(sales)):
+    growth = (sales[i] - sales[i-1]) / sales[i-1]
+    growth_rates.append(growth)
+
+avg_growth = np.mean(growth_rates)
+next_prediction = int(sales[-1] * (1 + avg_growth))
+
+# KPIs
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.metric("Predicted Next Month Sales", next_prediction)
+
+with col2:
+    volatility = np.std(sales)
+    risk_score = int((volatility / np.mean(sales)) * 100)
+    st.metric("Risk Score (%)", risk_score)
+
+with col3:
+    trend = "Positive" if avg_growth > 0 else "Negative"
+    st.metric("Trend Direction", trend)
+
+# Recommendation
+st.markdown("### AI Recommendation")
+
+if avg_growth > 0:
+    st.success("Sales trend is increasing. Consider expanding inventory and marketing.")
+else:
+    st.warning("Sales trend is declining. Focus on cost optimization and promotional offers.")
+
+# Profit Simulation
+st.markdown("### Profit Simulation")
+
+price = st.number_input("Selling Price per Unit", value=50)
+cost = st.number_input("Cost per Unit", value=30)
+
+profit = (price - cost) * next_prediction
+
+st.metric("Projected Profit (Next Month)", f"${profit}")
+
+# Graph
+st.markdown("### Sales Trend Analysis")
+
+plt.figure()
+plt.plot(months, sales)
+plt.xlabel("Month")
+plt.ylabel("Sales")
+st.pyplot(plt)
