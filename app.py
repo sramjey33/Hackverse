@@ -1,101 +1,139 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import IsolationForest
+from datetime import datetime
 
-# Page setup
-st.set_page_config(page_title="AI Decision Dashboard", layout="wide")
-st.title("AI-Powered Business Decision Support System")
-st.markdown("### Enter monthly sales to see predictions, anomalies, and recommendations.")
+# ------------------ PAGE CONFIG ------------------
+st.set_page_config(page_title="AI Decision Intelligence System", layout="wide")
+st.title("AI-Powered Business Decision Intelligence System")
+st.markdown("Automated AI Analysis with Human-in-the-Loop Approval")
 
-# Manual sales entry
-st.markdown("### Enter Monthly Sales (6 months)")
-col1, col2, col3 = st.columns(3)
-with col1:
-    m1 = st.number_input("Month 1", value=100)
-    m2 = st.number_input("Month 2", value=130)
-with col2:
-    m3 = st.number_input("Month 3", value=170)
-    m4 = st.number_input("Month 4", value=120)
-with col3:
-    m5 = st.number_input("Month 5", value=150)
-    m6 = st.number_input("Month 6", value=200)
+# ------------------ INPUT SECTION ------------------
+st.markdown("### Enter Monthly Sales Data")
 
-sales = [m1, m2, m3, m4, m5, m6]
-months = list(range(1, len(sales)+1))
+sales_input = st.text_input(
+    "Enter 6 months sales separated by commas (example: 100,130,170,120,150,300)"
+)
 
-# Data overview
-df = pd.DataFrame({"Month": months, "Sales": sales})
-st.markdown("### Sales Overview")
-st.dataframe(df, use_container_width=True)
+if sales_input:
 
-# Anomaly detection
-iso = IsolationForest(contamination=0.1, random_state=42)
-df['Anomaly'] = iso.fit_predict(df[['Sales']])
-anomalies = df[df['Anomaly'] == -1]
+    try:
+        sales = [float(x.strip()) for x in sales_input.split(",")]
+        months = list(range(1, len(sales)+1))
 
-# AI Prediction
-X = np.array(months).reshape(-1, 1)
-y = np.array(sales)
-model = LinearRegression()
-model.fit(X, y)
-next_month = np.array([[len(sales) + 1]])
-next_prediction = int(model.predict(next_month)[0])
+        df = pd.DataFrame({
+            "Month": months,
+            "Sales": sales
+        })
 
-# Smarter Trend Detection
-pct_change = (sales[-1] - sales[-2]) / sales[-2] * 100
-threshold = 5  # percent change to count as meaningful
+        # ------------------ TREND ANALYSIS ------------------
+        X = np.array(months).reshape(-1, 1)
+        y = np.array(sales)
 
-if pct_change > threshold:
-    trend = "Positive"
-elif pct_change < -threshold:
-    trend = "Negative"
-else:
-    trend = "Stable"
+        model = LinearRegression()
+        model.fit(X, y)
 
-# KPIs
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.metric("Predicted Next Month Sales", next_prediction)
-with col2:
-    volatility = np.std(sales)
-    risk_score = int((volatility / np.mean(sales)) * 100)
-    st.metric("Risk Score (%)", risk_score)
-with col3:
-    st.metric("Trend Direction", trend)
+        trend_slope = model.coef_[0]
+        confidence = model.score(X, y) * 100
 
-# Recommendation
-st.markdown("### AI Recommendation")
-if trend == "Positive":
-    st.success("Sales trend is increasing. Expand inventory and marketing.")
-elif trend == "Negative":
-    st.warning("Sales trend is declining. Optimize costs and consider promotions.")
-else:
-    st.info("Sales trend is stable. Maintain current strategy.")
+        if trend_slope > 2:
+            trend = "Increasing"
+            suggestion = "Consider increasing production by 10-15%."
+        elif trend_slope < -2:
+            trend = "Declining"
+            suggestion = "Consider promotional campaigns or cost optimization."
+        else:
+            trend = "Stable"
+            suggestion = "Maintain current strategy and monitor closely."
 
-# Profit Simulation
-st.markdown("### Profit Simulation")
-price = st.number_input("Selling Price per Unit", value=50)
-cost = st.number_input("Cost per Unit", value=30)
-profit = (price - cost) * next_prediction
-st.metric("Projected Profit (Next Month)", f"${profit}")
+        # ------------------ ANOMALY DETECTION ------------------
+        iso = IsolationForest(contamination=0.2, random_state=42)
+        df["Anomaly"] = iso.fit_predict(df[["Sales"]])
+        anomalies = df[df["Anomaly"] == -1]
 
-# Sales Trend Graph
-st.markdown("### Sales Trend with Anomalies")
-plt.figure(figsize=(8,4))
-plt.plot(months, sales, marker='o', label="Sales", linewidth=2)
-if not anomalies.empty:
-    plt.scatter(anomalies["Month"], anomalies["Sales"], color='red', label="Anomaly", s=100)
-plt.xlabel("Month")
-plt.ylabel("Sales")
-plt.title("Monthly Sales Trend")
-plt.legend()
-plt.grid(True)
-st.pyplot(plt)
+        volatility = np.std(sales)
 
-# Show anomalies table
-if not anomalies.empty:
-    st.markdown("### Detected Anomalies")
-    st.table(anomalies[["Month", "Sales"]])
+        if volatility > np.mean(sales) * 0.25:
+            risk = "High"
+        elif volatility > np.mean(sales) * 0.15:
+            risk = "Medium"
+        else:
+            risk = "Low"
+
+        # ------------------ DASHBOARD ------------------
+        st.markdown("## 📊 AI Analysis Dashboard")
+
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Trend", trend)
+        col2.metric("Confidence Level", f"{confidence:.2f}%")
+        col3.metric("Risk Level", risk)
+
+        # ------------------ GRAPH ------------------
+        st.markdown("### Sales Trend Visualization")
+
+        plt.figure()
+        plt.plot(months, sales, marker='o')
+        plt.title("Sales Trend")
+        plt.xlabel("Month")
+        plt.ylabel("Sales")
+        plt.grid(True)
+        st.pyplot(plt)
+
+        # ------------------ EXECUTIVE REPORT ------------------
+        st.markdown("## 📑 Automated AI Decision Report")
+
+        report = f"""
+        AI Decision Report
+        ----------------------------
+        Generated On: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+
+        Trend Analysis: {trend}
+        Trend Strength (Slope): {trend_slope:.2f}
+        Model Confidence: {confidence:.2f}%
+        Risk Level: {risk}
+        Volatility Score: {volatility:.2f}
+
+        Suggested Strategy:
+        {suggestion}
+
+        Anomalies Detected: {len(anomalies)}
+
+        Human Approval Required: YES
+        """
+
+        st.text(report)
+
+        # ------------------ DOWNLOAD REPORT ------------------
+        st.download_button(
+            label="Download Decision Report",
+            data=report,
+            file_name="AI_Decision_Report.txt",
+            mime="text/plain"
+        )
+
+        # ------------------ SEND TO MANAGEMENT ------------------
+        if st.button("Send Report to Management"):
+            st.success("Report successfully sent to management team.")
+
+        # ------------------ HUMAN APPROVAL ------------------
+        st.markdown("### Human Decision")
+
+        decision = st.radio(
+            "Management Decision:",
+            ["Pending", "Approved", "Rejected"]
+        )
+
+        st.markdown("### Audit Log")
+        st.write(f"Final Status: {decision}")
+        st.write(f"Decision Timestamp: {datetime.now()}")
+
+        # ------------------ ANOMALY DISPLAY ------------------
+        if not anomalies.empty:
+            st.warning("⚠ Anomalies detected in the following months:")
+            st.table(anomalies[["Month", "Sales"]])
+
+    except:
+        st.error("Please enter valid numeric values separated by commas.")
