@@ -5,151 +5,110 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import IsolationForest
 
-# ----------------------------------------------------
-# Page Configuration
-# ----------------------------------------------------
-st.set_page_config(
-    page_title="Intelligent Process Automation Dashboard",
-    layout="wide"
-)
+st.set_page_config(page_title="IPA Dashboard", layout="wide")
 
 st.title("Intelligent Process Automation Dashboard")
 
 st.markdown("""
-This system demonstrates how Artificial Intelligence can:
-- Automate routine approval workflows  
-- Predict task completion timelines  
-- Detect high-risk or anomalous requests  
-- Provide intelligent decision recommendations  
+AI-powered workflow automation system that:
+- Automates routine approvals
+- Predicts completion timelines
+- Detects anomalies
 """)
 
-# ----------------------------------------------------
-# Task Input Section
-# ----------------------------------------------------
+# ------------------ INPUT ------------------
 st.header("Task Entry")
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    t1_type = st.selectbox("Task 1 Type", ["Approval", "Purchase", "Compliance"])
     t1_priority = st.selectbox("Task 1 Priority", ["Low", "Medium", "High"])
-    t1_amount = st.number_input("Task 1 Amount ($)", min_value=0, value=500)
+    t1_amount = st.number_input("Task 1 Amount", min_value=0, value=500)
 
 with col2:
-    t2_type = st.selectbox("Task 2 Type", ["Approval", "Purchase", "Compliance"])
     t2_priority = st.selectbox("Task 2 Priority", ["Low", "Medium", "High"])
-    t2_amount = st.number_input("Task 2 Amount ($)", min_value=0, value=1200)
+    t2_amount = st.number_input("Task 2 Amount", min_value=0, value=1200)
 
 with col3:
-    t3_type = st.selectbox("Task 3 Type", ["Approval", "Purchase", "Compliance"])
     t3_priority = st.selectbox("Task 3 Priority", ["Low", "Medium", "High"])
-    t3_amount = st.number_input("Task 3 Amount ($)", min_value=0, value=800)
+    t3_amount = st.number_input("Task 3 Amount", min_value=0, value=800)
 
-# ----------------------------------------------------
-# Create DataFrame
-# ----------------------------------------------------
-tasks = [
-    {"Task ID": 1, "Type": t1_type, "Priority": t1_priority, "Amount": t1_amount},
-    {"Task ID": 2, "Type": t2_type, "Priority": t2_priority, "Amount": t2_amount},
-    {"Task ID": 3, "Type": t3_type, "Priority": t3_priority, "Amount": t3_amount},
+data = [
+    {"Task ID": 1, "Priority": t1_priority, "Amount": t1_amount},
+    {"Task ID": 2, "Priority": t2_priority, "Amount": t2_amount},
+    {"Task ID": 3, "Priority": t3_priority, "Amount": t3_amount},
 ]
 
-df = pd.DataFrame(tasks)
+df = pd.DataFrame(data)
 
-# ----------------------------------------------------
-# Rule-Based Automation
-# ----------------------------------------------------
-def auto_approve(row):
+# ------------------ AUTO APPROVAL ------------------
+def auto_rule(row):
     if row["Priority"] == "Low" or row["Amount"] <= 1000:
         return "Approved"
-    return "Requires Review"
+    return "Review"
 
-df["Automation Status"] = df.apply(auto_approve, axis=1)
+df["Status"] = df.apply(auto_rule, axis=1)
 
-# ----------------------------------------------------
-# Predictive Model (Completion Time)
-# ----------------------------------------------------
-historical_amounts = np.array(
-    [500, 800, 400, 1500, 1000, 2000, 600, 700, 1200, 900]
-).reshape(-1, 1)
-
-historical_days = np.array([2, 3, 2, 5, 4, 6, 3, 2, 4, 5])
+# ------------------ PREDICTION MODEL ------------------
+hist_amt = np.array([500,800,400,1500,1000,2000,600,700,1200,900]).reshape(-1,1)
+hist_days = np.array([2,3,2,5,4,6,3,2,4,5])
 
 model = LinearRegression()
-model.fit(historical_amounts, historical_days)
+model.fit(hist_amt, hist_days)
 
-df["Predicted Completion (Days)"] = df["Amount"].apply(
+df["Predicted Days"] = df["Amount"].apply(
     lambda x: max(1, int(model.predict([[x]])[0]))
 )
 
-# ----------------------------------------------------
-# Anomaly Detection
-# ----------------------------------------------------
+# ------------------ ANOMALY DETECTION ------------------
 iso = IsolationForest(contamination=0.2, random_state=42)
+df["Risk Flag"] = iso.fit_predict(df[["Amount", "Predicted Days"]])
 
-df["Anomaly Flag"] = iso.fit_predict(
-    df[["Amount", "Predicted Completion (Days)"]]
-)
+anomalies = df[df["Risk Flag"] == -1]
 
-anomalies = df[df["Anomaly Flag"] == -1]
-
-# ----------------------------------------------------
-# KPI Dashboard
-# ----------------------------------------------------
+# ------------------ KPIs ------------------
 st.header("Key Metrics")
 
-k1, k2, k3, k4 = st.columns(4)
+c1, c2, c3, c4 = st.columns(4)
 
-k1.metric("Total Tasks", len(df))
-k2.metric("Auto Approved", len(df[df["Automation Status"] == "Approved"]))
-k3.metric("Requires Review", len(df[df["Automation Status"] == "Requires Review"]))
-k4.metric("High-Risk Flags", len(anomalies))
+c1.metric("Total Tasks", len(df))
+c2.metric("Auto Approved", len(df[df["Status"] == "Approved"]))
+c3.metric("Needs Review", len(df[df["Status"] == "Review"]))
+c4.metric("High Risk", len(anomalies))
 
-# ----------------------------------------------------
-# AI Recommendations
-# ----------------------------------------------------
+# ------------------ RECOMMENDATIONS ------------------
 st.header("AI Recommendations")
 
 for _, row in df.iterrows():
-    if row["Automation Status"] == "Approved":
+    if row["Status"] == "Approved":
         st.success(f"Task {row['Task ID']} can be processed automatically.")
-    elif row["Anomaly Flag"] == -1:
-        st.warning(f"Task {row['Task ID']} is high-risk and requires manual verification.")
+    elif row["Risk Flag"] == -1:
+        st.warning(f"Task {row['Task ID']} appears high-risk. Manual validation required.")
     else:
-        st.info(f"Task {row['Task ID']} should be assigned to an approver.")
+        st.info(f"Task {row['Task ID']} requires approval.")
 
-# ----------------------------------------------------
-# Visualization
-# ----------------------------------------------------
+# ------------------ VISUAL ------------------
 st.header("Task Analysis")
 
-fig, ax = plt.subplots(figsize=(8, 4))
+fig, ax = plt.subplots()
 
-colors = ["red" if x == -1 else "blue" for x in df["Anomaly Flag"]]
+colors = ["red" if x == -1 else "blue" for x in df["Risk Flag"]]
 
-ax.scatter(df["Task ID"], df["Amount"], c=colors, s=120)
+ax.scatter(df["Task ID"], df["Amount"], c=colors)
 
 for i in range(len(df)):
     ax.text(
-        df["Task ID"][i] + 0.05,
-        df["Amount"][i] + 20,
-        f"{df['Predicted Completion (Days)'][i]}d"
+        df["Task ID"][i],
+        df["Amount"][i],
+        f"{df['Predicted Days'][i]}d"
     )
 
 ax.set_xlabel("Task ID")
-ax.set_ylabel("Amount ($)")
-ax.set_title("Task Amount vs Predicted Completion Time")
+ax.set_ylabel("Amount")
 ax.grid(True)
 
 st.pyplot(fig)
 
-# ----------------------------------------------------
-# High Risk Table
-# ----------------------------------------------------
 if not anomalies.empty:
-    st.header("High-Risk Tasks Identified")
-    st.dataframe(
-        anomalies[
-            ["Task ID", "Type", "Priority", "Amount", "Predicted Completion (Days)"]
-        ]
-    )
+    st.header("High Risk Tasks")
+    st.dataframe(anomalies)
