@@ -81,19 +81,3 @@ price = st.number_input("Selling Price per Unit", value=50)
 cost = st.number_input("Cost per Unit", value=30)
 profit = (price - cost) * next_prediction
 st.metric("Projected Profit (Next Month)", f"${profit}")
-
-# ------------------ Graph ------------------
-st.markdown("### Sales Trend with Anomalies")
-plt.figure()
-plt.plot(months, sales, marker='o', label="Sales")
-if not anomalies.empty:
-    plt.scatter(anomalies["Month"], anomalies["Sales"], color='red', label="Anomaly", s=100)
-plt.xlabel("Month")
-plt.ylabel("Sales")
-plt.legend()
-st.pyplot(plt)
-
-# ------------------ Show anomalies table ------------------
-if not anomalies.empty:
-    st.markdown("### Detected Anomalies")
-    st.table(anomalies[["Month", "Sales"]])
