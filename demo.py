@@ -1,101 +1,104 @@
-#!/usr/bin/env python3
-"""
-AI-Driven Decision Support System - Demo Script
-==============================================
+import streamlit as st
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import IsolationForest
 
-This script helps you quickly test the AI DSS application with sample data.
+# ------------------ Page Setup ------------------
+st.set_page_config(page_title="Smart IPA Dashboard", layout="wide")
+st.title("AI-Powered Intelligent Process Automation Dashboard")
+st.markdown("### Manage and automate routine approval tasks with AI predictions and anomaly detection.")
 
-Usage:
-1. Make sure all dependencies are installed: pip install -r requirements.txt
-2. Run this script: python demo.py
-3. Or run the Streamlit app directly: streamlit run app.py
+# ------------------ Manual Task Entry ------------------
+st.markdown("### Enter New Task Requests (6 tasks max)")
 
-Demo Datasets Available:
-- Growth Scenario: Steady upward trend
-- Decline Scenario: Steady downward trend
-- Volatile Scenario: High variability with anomalies
-- Seasonal Pattern: Cyclical patterns
+col1, col2, col3 = st.columns(3)
+with col1:
+    t1_type = st.selectbox("Task 1 Type", ["Approval", "Purchase", "Compliance"])
+    t1_priority = st.selectbox("Task 1 Priority", ["Low", "Medium", "High"])
+    t1_amount = st.number_input("Task 1 Amount ($)", value=500)
+with col2:
+    t2_type = st.selectbox("Task 2 Type", ["Approval", "Purchase", "Compliance"])
+    t2_priority = st.selectbox("Task 2 Priority", ["Low", "Medium", "High"])
+    t2_amount = st.number_input("Task 2 Amount ($)", value=1200)
+with col3:
+    t3_type = st.selectbox("Task 3 Type", ["Approval", "Purchase", "Compliance"])
+    t3_priority = st.selectbox("Task 3 Priority", ["Low", "Medium", "High"])
+    t3_amount = st.number_input("Task 3 Amount ($)", value=800)
 
-Features Demonstrated:
-✅ Predictive Analytics (ARIMA + Exponential Smoothing)
-✅ Prescriptive Analytics (AI Recommendations)
-✅ Smart Operations Recommendations
-✅ Automated Root-Cause Analysis
-✅ Email Automation (configure in sidebar)
-✅ Scenario Planning (Best/Base/Worst cases)
-✅ Real-time Alerts & Notifications
-✅ Human-in-the-Loop Decision Workflow
+# You can expand for more tasks easily
+tasks = [
+    {"Task ID": 1, "Type": t1_type, "Priority": t1_priority, "Amount": t1_amount, "Status": "Pending"},
+    {"Task ID": 2, "Type": t2_type, "Priority": t2_priority, "Amount": t2_amount, "Status": "Pending"},
+    {"Task ID": 3, "Type": t3_type, "Priority": t3_priority, "Amount": t3_amount, "Status": "Pending"},
+]
 
-Hackathon Problem Statement Addressed:
-- AI-Driven Decision Support Systems
-- Predictive and prescriptive analytics
-- Smart recommendations for operations
-- Automated root-cause analysis
+df = pd.DataFrame(tasks)
 
-For the hackathon demo:
-1. Load one of the demo datasets
-2. Configure email settings (optional)
-3. Run analysis and show results
-4. Demonstrate email automation
-5. Show scenario planning capabilities
-
-Author: Hackathon 2026 Team
-"""
-
-import sys
-import subprocess
-
-def check_dependencies():
-    """Check if required packages are installed"""
-    required_packages = [
-        'streamlit', 'pandas', 'numpy', 'matplotlib',
-        'seaborn', 'scikit-learn', 'statsmodels'
-    ]
-
-    missing_packages = []
-    for package in required_packages:
-        try:
-            __import__(package.replace('-', '_'))
-        except ImportError:
-            missing_packages.append(package)
-
-    if missing_packages:
-        print("❌ Missing required packages:")
-        for pkg in missing_packages:
-            print(f"   - {pkg}")
-        print("\n📦 Install with: pip install -r requirements.txt")
-        return False
-
-    print("✅ All dependencies are installed!")
-    return True
-
-def run_demo():
-    """Run the Streamlit application"""
-    print("🚀 Starting AI-Driven Decision Support System...")
-    print("📱 App will be available at: http://localhost:8501")
-    print("\n💡 Demo Tips:")
-    print("   1. Try the demo datasets in the 'Hackathon Demo & Testing' section")
-    print("   2. Configure email settings in the sidebar for automation demo")
-    print("   3. Explore different analysis tabs and scenario planning")
-    print("   4. Test the email templates for automated communication")
-    print("\n🎯 Press Ctrl+C to stop the application")
-
-    try:
-        subprocess.run([sys.executable, "-m", "streamlit", "run", "app.py", "--server.headless", "true"])
-    except KeyboardInterrupt:
-        print("\n👋 Application stopped. Thanks for testing!")
-    except Exception as e:
-        print(f"❌ Error running application: {e}")
-        print("💡 Make sure streamlit is installed: pip install streamlit")
-
-if __name__ == "__main__":
-    print("🤖 AI-Driven Decision Support System - Hackathon Demo")
-    print("=" * 55)
-
-    if check_dependencies():
-        print("\n🎯 Ready to launch the application!")
-        input("Press Enter to start the demo... ")
-        run_demo()
+# ------------------ Auto-Approval Logic ------------------
+def auto_approve(row):
+    # Simple rule: auto-approve low priority or small amount tasks
+    if row["Priority"] == "Low" or row["Amount"] <= 1000:
+        return "Approved"
     else:
-        print("\n❌ Please install missing dependencies first.")
-        sys.exit(1)
+        return "Pending"
+
+df["Auto-Status"] = df.apply(auto_approve, axis=1)
+
+# ------------------ AI Prediction of Completion Time ------------------
+# Simulate historical completion times for prediction
+historical_days = [2,3,2,5,4,6,3,2,4,5]
+historical_amounts = [500,800,400,1500,1000,2000,600,700,1200,900]
+X_hist = np.array(historical_amounts).reshape(-1,1)
+y_hist = np.array(historical_days)
+model = LinearRegression()
+model.fit(X_hist, y_hist)
+
+# Predict completion time for new tasks
+df["Predicted Completion (Days)"] = df["Amount"].apply(lambda x: max(1,int(model.predict([[x]])[0])))
+
+# ------------------ Anomaly Detection ------------------
+iso = IsolationForest(contamination=0.2, random_state=42)
+df['Anomaly'] = iso.fit_predict(df[['Amount', 'Predicted Completion (Days)']])
+anomalies = df[df['Anomaly'] == -1]
+
+# ------------------ KPIs ------------------
+st.markdown("### Dashboard KPIs")
+col1, col2, col3, col4 = st.columns(4)
+with col1:
+    st.metric("Total Tasks", len(df))
+with col2:
+    st.metric("Approved Tasks", len(df[df["Auto-Status"]=="Approved"]))
+with col3:
+    st.metric("Pending Tasks", len(df[df["Auto-Status"]=="Pending"]))
+with col4:
+    st.metric("Anomalous Tasks", len(anomalies))
+
+# ------------------ Recommendations ------------------
+st.markdown("### AI Recommendations")
+for idx, row in df.iterrows():
+    if row["Auto-Status"] == "Approved":
+        st.success(f"Task {row['Task ID']} ({row['Type']}) can be auto-approved.")
+    elif row["Anomaly"] == -1:
+        st.warning(f"Task {row['Task ID']} ({row['Type']}) is unusual or high-risk. Requires manual review.")
+    else:
+        st.info(f"Task {row['Task ID']} ({row['Type']}) is pending. Assign to human approver.")
+
+# ------------------ Graph: Task Amount vs Completion ------------------
+st.markdown("### Task Visualization")
+plt.figure(figsize=(8,4))
+plt.scatter(df["Task ID"], df["Amount"], c=np.where(df["Anomaly"]==-1,'red','blue'), s=100)
+for i, txt in enumerate(df["Predicted Completion (Days)"]):
+    plt.text(df["Task ID"][i]+0.05, df["Amount"][i]+10, f"{txt}d")
+plt.xlabel("Task ID")
+plt.ylabel("Amount ($)")
+plt.title("Tasks: Amount vs Predicted Completion Time")
+plt.grid(True)
+plt.show()
+st.pyplot(plt)
+
+# ------------------ Show Anomalies ------------------
+if not anomalies.empty:
+    st.markdown("### Detected Anomalies (High-risk tasks)")
+    st.table(anomalies[["Task ID","Type","Priority","Amount","Predicted Completion (Days)"]])
