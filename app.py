@@ -31,7 +31,7 @@ st.sidebar.header("⚙️ System Configuration")
 # Email Configuration
 st.sidebar.subheader("📧 Email Automation")
 smtp_server = st.sidebar.text_input("SMTP Server", "smtp.gmail.com")
-smtp_port = st.sidebar.number_input("SMTP Port", 587, 1, 65535)
+smtp_port = st.sidebar.number_input("SMTP Port", min_value=1, max_value=65535, value=587)
 sender_email = st.sidebar.text_input("Sender Email")
 sender_password = st.sidebar.text_input("Sender Password", type="password")
 recipient_emails = st.sidebar.text_area("Recipient Emails (comma-separated)")
